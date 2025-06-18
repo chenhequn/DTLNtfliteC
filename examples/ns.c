@@ -4,10 +4,29 @@
 #include <stdio.h>
 
 int main(int argc, char **argv) {
-    if (argc != 4) {
-        printf("usage: wavio in.wav out.wav vad.wav\n");
+    if (argc != 2) {
+        printf("usage: wavio in.wav\n");
         return 0;
     }
+
+    // Generate output filenames
+    char out_filename[256];
+    char vad_filename[256];
+    char base_name[256];
+    strncpy(base_name, argv[1], sizeof(base_name) - 1);
+    base_name[sizeof(base_name) - 1] = '\0';
+    
+    char *dot = strrchr(base_name, '.');
+    if (dot != NULL && strcmp(dot, ".wav") == 0) {
+        *dot = '\0';  // Remove .wav extension
+    }
+    
+    // Use length specifier to prevent truncation warning
+    // Reserve space for suffix + null terminator
+    snprintf(out_filename, sizeof(out_filename), "%.*s_dtln_ns_agc.wav", 
+             (int)(sizeof(out_filename) - 18), base_name);
+    snprintf(vad_filename, sizeof(vad_filename), "%.*s_vad.wav", 
+             (int)(sizeof(vad_filename) - 9), base_name);
 
     SF_INFO info;
     SNDFILE *inwav = sf_open(argv[1], SFM_READ, &info);
@@ -22,9 +41,9 @@ int main(int argc, char **argv) {
     onfo.format = SF_FORMAT_WAV | SF_FORMAT_PCM_16;
     onfo.sections = 0;
     onfo.seekable = 1;
-    SNDFILE *outwav = sf_open(argv[2], SFM_WRITE, &onfo);
+    SNDFILE *outwav = sf_open(out_filename, SFM_WRITE, &onfo);
     if (NULL == outwav) {
-        fprintf(stderr, "open %s failed\n", argv[2]);
+        fprintf(stderr, "open %s failed\n", out_filename);
         sf_close(inwav);
         return -2;
     }
@@ -35,9 +54,9 @@ int main(int argc, char **argv) {
     vnfo.format = SF_FORMAT_WAV | SF_FORMAT_PCM_16;
     vnfo.sections = 0;
     vnfo.seekable = 1;
-    SNDFILE *vadwav = sf_open(argv[3], SFM_WRITE, &vnfo);
+    SNDFILE *vadwav = sf_open(vad_filename, SFM_WRITE, &vnfo);
     if (NULL == vadwav) {
-        fprintf(stderr, "open %s failed\n", argv[3]);
+        fprintf(stderr, "open %s failed\n", vad_filename);
         sf_close(outwav);
         sf_close(inwav);
         return -3;
@@ -54,8 +73,8 @@ int main(int argc, char **argv) {
     param.mic_num = 1;
     param.ref_num = 0;
     param.loc_phi = 90.0f;
-    param.modelpath[0] = "/voc/DTLN_tflite_Cpp/model/DNS/model_1.tflite";
-    param.modelpath[1] = "/voc/DTLN_tflite_Cpp/model/DNS/model_2.tflite";
+    param.modelpath[0] = "./model/model_1.tflite";
+    param.modelpath[1] = "./model/model_2.tflite";
     memset(param.mic_coord, 0, sizeof(param.mic_coord));
 
     void *hssp = dios_ssp_init_api(&param);

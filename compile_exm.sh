@@ -12,4 +12,5 @@ g++ \
 	-ldl \
 	-lm \
 	-Wl,-rpath,./lib \
+	-no-pie \
 	-o bin/dtln

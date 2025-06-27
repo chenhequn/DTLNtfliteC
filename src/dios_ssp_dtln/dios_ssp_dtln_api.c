@@ -78,6 +78,8 @@ void* dios_ssp_dtln_init_api(const char *modelpath[], int frame_len)
         return NULL;
     }
 
+    printf("TfLiteVersion: %s\n", TfLiteVersion());
+    
     objDTLN *srv = (objDTLN *)malloc(sizeof(objDTLN));
     if (NULL == srv) {
         return NULL;

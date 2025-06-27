@@ -27,6 +27,15 @@ https://tensorflow.google.cn/lite/guide/build_arm64
 为：
 ./tensorflow/lite/tools/make/build_lib.sh
 
+2025/6/27更新：这里对应的TfLiteVersion: 2.5.0-rc3，目前编译方法已经不是上面的了，请参考：
+#提前安装cmake flatbuffers-compiler python
+#参考：https://ai.google.dev/edge/litert/build/cmake_arm
+
+#工具在这里下：
+#curl -LO https://storage.googleapis.com/mirror.tensorflow.org/developer.arm.com/media/Files/downloads/gnu-a/8.3-2019.03/binrel/gcc-arm-8.3-2019.03-x86_64-aarch64-linux-gnu.tar.xz
+#mkdir -p ${HOME}/toolchains
+#tar xvf gcc-arm-8.3-2019.03-x86_64-aarch64-linux-gnu.tar.xz -C ${HOME}/toolchains
+
 (2)编译dtlb依赖libsndfile读写wav文件，可自行编译
 
 (3)thirdpart目录下面已经包含了，在centos7上编译得到的静态库

@@ -4,13 +4,13 @@ g++ \
 	examples/ns.c \
 	-Iinc \
 	-Ithirdpart/include \
-	-Llib \
-	-Lthirdpart/lib \
+	-Llib/x86_64 \
+	-Lthirdpart/lib/x86_64 \
 	-lathena \
 	-lsndfile \
 	-lpthread \
 	-ldl \
 	-lm \
-	-Wl,-rpath,./lib \
+	-Wl,-rpath,./lib/x86_64 \
 	-no-pie \
 	-o bin/dtln

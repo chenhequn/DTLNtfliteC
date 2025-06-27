@@ -1,5 +1,5 @@
-rm -rf lib
-mkdir lib
+rm -rf lib/x86_64
+mkdir -p lib/x86_64
 
 gcc \
 src/dios_ssp_aec/dios_ssp_aec_tde/*.c \
@@ -29,9 +29,9 @@ src/dios_ssp_aec/dios_ssp_aec_tde/*.c \
 	-Iinc/dios_ssp_vad \
 	-Isrc \
 	-Ithirdpart/include \
-	-Lthirdpart/lib \
+	-Lthirdpart/lib/x86_64 \
 	-fPIC \
  	-shared \
 	-O3 \
 	-ltensorflow-lite \
-	-o lib/libathena.so
+	-o lib/x86_64/libathena.so

@@ -61,7 +61,7 @@ SRC = \
 	src/dios_ssp_vad/*.c \
 	src/dios_ssp_api.c
 
-all: lib
+all: lib dtln
 lib:
 	rm -rf $(LIB_PATH)
 	mkdir -p $(LIB_PATH)
@@ -71,3 +71,40 @@ clean:
 	rm -rf $(LIB_PATH)
 
 .PHONY: all lib clean 
+
+dtln: lib
+	rm -rf bin
+	mkdir -p bin
+ifeq ($(ARCH),arm)
+	~/01_project/rk3588_linux_tve1206r/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-g++ \
+		examples/ns.c \
+		-Iinc \
+		-Ithirdpart/include \
+		-Llib/aarch64 \
+		-Lthirdpart/lib/aarch64 \
+		-lathena \
+		-lsndfile \
+		-lpthread \
+		-ldl \
+		-lm \
+		-Wl,-rpath,./lib/aarch64 \
+		-no-pie \
+		-o bin/dtln
+else
+	g++ \
+		examples/ns.c \
+		-Iinc \
+		-Ithirdpart/include \
+		-Llib/x86_64 \
+		-Lthirdpart/lib/x86_64 \
+		-lathena \
+		-lsndfile \
+		-lpthread \
+		-ldl \
+		-lm \
+		-Wl,-rpath,./lib/x86_64 \
+		-no-pie \
+		-o bin/dtln
+endif
+
+.PHONY: dtln 

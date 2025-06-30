@@ -37,5 +37,9 @@ https://tensorflow.google.cn/lite/guide/build_arm64
 #tar xvf gcc-arm-8.3-2019.03-x86_64-aarch64-linux-gnu.tar.xz -C ${HOME}/toolchains
 
 (2)编译dtlb依赖libsndfile读写wav文件，可自行编译
+获取代码：https://github.com/libsndfile/libsndfile
+按照上面的方法编译libsndfile.a
+
+也可以在板卡上安装 sudo apt install libsndfile-dev
 
 (3)thirdpart目录下面已经包含了，在centos7上编译得到的静态库

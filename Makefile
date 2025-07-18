@@ -1,9 +1,11 @@
 # Flexible Makefile for x64 and arm (ARCH variable)
 
 ARCH ?= x64
+GCC_ARM_ROOT = /opt/gcc-arm-10.2-2020.11-x86_64-aarch64-none-linux-gnu
+SYSROOT=/home/chenhequn/rk3588-sysroot
 
 ifeq ($(ARCH),arm)
-CC = ~/01_project/rk3588_linux_tve1206r/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-gcc
+CC = $(GCC_ARM_ROOT)/bin/aarch64-none-linux-gnu-gcc
 CFLAGS = -fPIC -shared -O3 \
 	-Iinc \
 	-Iinc/dios_ssp_aec/dios_ssp_aec_tde \
@@ -19,8 +21,9 @@ CFLAGS = -fPIC -shared -O3 \
 	-Iinc/dios_ssp_vad \
 	-Isrc \
 	-Ithirdpart/include \
-	-march=armv8-a
-LDFLAGS = -Lthirdpart/lib -Lthirdpart/lib/aarch64 -ltensorflow-lite -lm -lasound -lpthread
+	-march=armv8-a \
+	--sysroot=$(SYSROOT)
+LDFLAGS = -Lthirdpart/lib/aarch64 -L$(SYSROOT)/usr/lib/aarch64-linux-gnu -ltensorflow-lite -lm -lasound -lpthread
 LIB_PATH = lib/aarch64
 LIBNAME = libathena.so
 
@@ -76,19 +79,26 @@ dtln: lib
 	rm -rf bin
 	mkdir -p bin
 ifeq ($(ARCH),arm)
-	~/01_project/rk3588_linux_tve1206r/prebuilts/gcc/linux-x86/aarch64/gcc-arm-10.3-2021.07-x86_64-aarch64-none-linux-gnu/bin/aarch64-none-linux-gnu-g++ \
+	$(GCC_ARM_ROOT)/bin/aarch64-none-linux-gnu-g++ \
 		examples/ns.c \
+		--sysroot=$(SYSROOT) \
 		-Iinc \
 		-Ithirdpart/include \
 		-Llib/aarch64 \
 		-Lthirdpart/lib/aarch64 \
+		-L$(SYSROOT)/usr/lib/aarch64-linux-gnu \
 		-lathena \
 		-lsndfile \
 		-lpthread \
+		-ltensorflow-lite \
 		-ldl \
 		-lm \
 		-Wl,-rpath,./lib/aarch64 \
+		-Wl,-rpath,./thirdpart/lib/aarch64 \
+		-Wl,-rpath,$(SYSROOT)/usr/lib/aarch64-linux-gnu \
 		-no-pie \
+		-Wl,-rpath-link,$(SYSROOT)/usr/lib/aarch64-linux-gnu \
+		-Wl,-rpath-link,./thirdpart/lib/aarch64 \
 		-o bin/dtln
 else
 	g++ \
@@ -107,4 +117,4 @@ else
 		-o bin/dtln
 endif
 
-.PHONY: dtln 
+.PHONY: dtln

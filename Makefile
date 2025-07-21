@@ -64,7 +64,7 @@ SRC = \
 	src/dios_ssp_vad/*.c \
 	src/dios_ssp_api.c
 
-all: lib dtln
+all: lib dtln capture_test
 lib:
 	rm -rf $(LIB_PATH)
 	mkdir -p $(LIB_PATH)
@@ -115,6 +115,50 @@ else
 		-Wl,-rpath,./lib/x86_64 \
 		-no-pie \
 		-o bin/dtln
+endif
+
+capture_test: lib
+	rm -rf bin
+	mkdir -p bin
+ifeq ($(ARCH),arm)
+	$(GCC_ARM_ROOT)/bin/aarch64-none-linux-gnu-g++ \
+		examples/capture_test.c \
+		examples/resample.c \
+		--sysroot=$(SYSROOT) \
+		-Iinc \
+		-Ithirdpart/include \
+		-Llib/aarch64 \
+		-Lthirdpart/lib/aarch64 \
+		-L$(SYSROOT)/usr/lib/aarch64-linux-gnu \
+		-lathena \
+		-lasound \
+		-lpthread \
+		-ltensorflow-lite \
+		-ldl \
+		-lm \
+		-Wl,-rpath,./lib/aarch64 \
+		-Wl,-rpath,./thirdpart/lib/aarch64 \
+		-Wl,-rpath,$(SYSROOT)/usr/lib/aarch64-linux-gnu \
+		-no-pie \
+		-Wl,-rpath-link,$(SYSROOT)/usr/lib/aarch64-linux-gnu \
+		-Wl,-rpath-link,./thirdpart/lib/aarch64 \
+		-o bin/capture_test
+else
+	g++ \
+		examples/capture_test.c \
+		examples/resample.c \
+		-Iinc \
+		-Ithirdpart/include \
+		-Llib/x86_64 \
+		-Lthirdpart/lib/x86_64 \
+		-lathena \
+		-lasound \
+		-lpthread \
+		-ldl \
+		-lm \
+		-Wl,-rpath,./lib/x86_64 \
+		-no-pie \
+		-o bin/capture_test
 endif
 
 .PHONY: dtln

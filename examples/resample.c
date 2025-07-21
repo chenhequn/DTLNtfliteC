@@ -14,6 +14,15 @@ int resample_to_16k(const short *input_buf,
     }
 
     const int target_rate = 16000;
+    if (sample_rate == target_rate) {
+        // 采样率已是16k，直接拷贝
+        for (int i = 0; i < frames * in_channels; i++) {
+            output_buf[i] = input_buf[i];
+        }
+        *output_frames = frames;
+        return 0;
+    }
+
     *output_frames = frames * target_rate / sample_rate;
 
     // 对每个通道进行重采样

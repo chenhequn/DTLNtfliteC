@@ -72,7 +72,7 @@ objSSP_Param* init_signal_config(void) {
     SSP_PARAM->HPF_KEY  = 0;      // 开启高通滤波
     SSP_PARAM->BF_KEY   = 0;      // 关闭波束形成
     SSP_PARAM->DOA_KEY  = 0;      // 关闭DOA
-    SSP_PARAM->mic_num  = 1;      // 双通道
+    SSP_PARAM->mic_num  = 1;      // 通道数
     SSP_PARAM->ref_num  = 0;      // 无参考通道
     SSP_PARAM->loc_phi  = 90.0f;  // 默认方位角
     SSP_PARAM->modelpath[0] = "./model/model_1.tflite";
@@ -83,10 +83,10 @@ objSSP_Param* init_signal_config(void) {
 }
 
 int main(void) {
-    const char* input_dev = "hw:4,0";
-    const int in_channels = 1;
+    const char* input_dev = "hw:5,0";
+    const int in_channels = 8;
     const int out_channels = 1;
-    const int in_sample_rate = 48000;
+    const int in_sample_rate = 16000;
     const int target_sample_rate = 16000;
     const int array_frm_len = 128; //前处理模块每次处理的音频长度
     const int capture_frames = (in_sample_rate / target_sample_rate) * array_frm_len;
@@ -101,26 +101,26 @@ int main(void) {
     }
 
     // 分配输入缓冲区
-    short* input_buf = (short*)malloc(capture_frames * in_channels * sizeof(short));
-    if (!input_buf) {
-        fprintf(stderr, "Failed to allocate input buffer\n");
+    short* capture_buf = (short*)malloc(capture_frames * in_channels * sizeof(short));
+    if (!capture_buf) {
+        fprintf(stderr, "Failed to allocate capture buffer\n");
         snd_pcm_close(input_pcm);
         return -1;
     }
 
-    // 生成输出文件名
+    // 生成文件名
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
     char captured_filename[64];
     strftime(captured_filename, sizeof(captured_filename), "captured_%Y%m%d_%H%M%S.pcm", t);
 
-    // 打开输出文件
+    // 打开文件
     char out_path[128];
     snprintf(out_path, sizeof(out_path), "out/%s", captured_filename);
-    FILE *fp = fopen(out_path, "wb");
-    if (!fp) {
+    FILE *fp_captured = fopen(out_path, "wb");
+    if (!fp_captured) {
         fprintf(stderr, "Failed to open output file: %s\n", captured_filename);
-        free(input_buf);
+        free(capture_buf);
         snd_pcm_close(input_pcm);
         return -1;
     }
@@ -144,8 +144,8 @@ int main(void) {
     FILE *fp_processed = fopen(out_path, "wb");
     if (!fp_processed) {
         fprintf(stderr, "Failed to open processed output file: %s\n", processed_filename);
-        free(input_buf);
-        fclose(fp);
+        free(capture_buf);
+        fclose(fp_processed);
         snd_pcm_close(input_pcm);
         return -1;
     }
@@ -169,102 +169,66 @@ int main(void) {
 
     while (keep_running) {
         // 采集音频
-        int err = snd_pcm_readi(input_pcm, input_buf, capture_frames);
+        int err = snd_pcm_readi(input_pcm, capture_buf, capture_frames);
         if (err < 0) {
             fprintf(stderr, "Read error: %s\n", snd_strerror(err));
             snd_pcm_prepare(input_pcm);
             continue;
         }
 
-        // 重采样到16k
-        int resampled_frames = capture_frames * target_sample_rate / in_sample_rate;;
-        short* resample_buf = (short*)malloc(resampled_frames * in_channels * sizeof(short));
-        if (!resample_buf) {
-            fprintf(stderr, "Failed to allocate resample buffer\n");
+        // 提取第一个声道的数据
+        short* first_channel_buf = (short*)malloc(capture_frames * sizeof(short));
+        if (!first_channel_buf) {
+            fprintf(stderr, "Failed to allocate first channel buffer\n");
             break;
         }
-
-        int ret = resample_to_16k(input_buf, resample_buf, capture_frames, in_channels, 
-                                 in_sample_rate, &resampled_frames);
-        if (ret != 0) {
-            fprintf(stderr, "Resample failed\n");
-            free(resample_buf);
-            continue;
+        for (int i = 0; i < capture_frames; ++i) {
+            first_channel_buf[i] = capture_buf[i * in_channels];
         }
-
-       // 写入处理前的音频数据
-        size_t written = fwrite(resample_buf, sizeof(short), resampled_frames * in_channels, fp);
-        if (written != resampled_frames * in_channels) {
-            fprintf(stderr, "Failed to write all samples\n");
+        size_t written = fwrite(first_channel_buf, sizeof(short), capture_frames, fp_captured);
+        if (written != capture_frames) {
+            fprintf(stderr, "Failed to write all samples for first channel\n");
         }
-
-        fflush(fp);
-
-        // 如果是多声道，只保存第一个声道
-        // if (in_channels > 1) {
-        //     // 提取第一个声道的数据
-        //     for (int i = 0; i < resampled_frames; i++) {
-        //         resample_buf[i] = resample_buf[i * in_channels];
-        //     }
-        // }
-
-        // 重新排序多声道数据，将每个声道的所有帧连续存储，先保存所有帧的声道1，然后才保存所有帧的声道2
-        short* reordered_buf = (short*)malloc(resampled_frames * in_channels * sizeof(short));
-        if (!reordered_buf) {
-            fprintf(stderr, "Failed to allocate reordered buffer\n");
-            free(resample_buf);
-            continue;
-        }
-
-        // 对每个声道进行重排序
-        for (int ch = 0; ch < in_channels; ch++) {
-            for (int i = 0; i < resampled_frames; i++) {
-                reordered_buf[ch * resampled_frames + i] = resample_buf[i * in_channels + ch];
-            }
-        }
-
-        // 释放原始缓冲区，使用重排序后的数据
-        free(resample_buf);
-        resample_buf = reordered_buf;
+        fflush(fp_captured);
 
         // 分配处理后的缓冲区processed_buf
-        short* processed_buf = (short*)malloc(resampled_frames * out_channels * sizeof(short));
+        short* processed_buf = (short*)malloc(capture_frames * out_channels * sizeof(short));
         if (!processed_buf) {
             fprintf(stderr, "Failed to allocate process buffer\n");
-            free(resample_buf);
+            free(first_channel_buf);
             free(processed_buf);
             continue;
         }
 
         int vadrst = 0;
         // 信号处理
-        ret = dios_ssp_process_api(st, resample_buf, resample_buf, processed_buf, &vadrst, SSP_PARAM);
+        ret = dios_ssp_process_api(st, first_channel_buf, first_channel_buf, processed_buf, &vadrst, SSP_PARAM);
         if (ret != 0) {
             fprintf(stderr, "dios_ssp_process_api processing failed\n");
-            free(resample_buf);
+            free(first_channel_buf);
             free(processed_buf);
             continue;
         }
 
         // 写入处理后的音频数据
         written = fwrite(processed_buf, sizeof(short), 
-                              resampled_frames * out_channels, fp_processed);
-        if (written != resampled_frames * out_channels) {
+                              capture_frames * out_channels, fp_processed);
+        if (written != capture_frames * out_channels) {
             fprintf(stderr, "Failed to write all samples\n");
         }
 
         fflush(fp_processed);
 
         // 释放缓冲区
-        free(resample_buf);
+        free(first_channel_buf);
         free(processed_buf);
     }
 
     // 清理资源
     dios_ssp_uninit_api(st, SSP_PARAM);
     free(SSP_PARAM);
-    free(input_buf);
-    fclose(fp);
+    free(capture_buf);
+    fclose(fp_captured);
     fclose(fp_processed);
 
     snd_pcm_close(input_pcm);

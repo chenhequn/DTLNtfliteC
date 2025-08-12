@@ -267,14 +267,6 @@ int dios_ssp_process_api(void* ptr, short* mic_buf, short* ref_buf, short* out_b
     *pvad = srv->vad_result = dios_ssp_vad_result_get(srv->ptr_vad);
 #endif
 
-    // ns process
-    if(SSP_PARAM->NS_KEY == 1) {
-        ret = dios_ssp_ns_process(srv->ptr_ns, srv->ptr_data_buf);
-        if(ret != 0) {
-            return ERROR_NS;
-        }
-    }
-
     if(SSP_PARAM->DTLN_KEY == 1) {
         ret = dios_ssp_dtln_process(srv->ptr_dtln, srv->ptr_data_buf);
         if(ret != 0) {
@@ -282,6 +274,13 @@ int dios_ssp_process_api(void* ptr, short* mic_buf, short* ref_buf, short* out_b
         }
     }
 
+    // ns process
+    if(SSP_PARAM->NS_KEY == 1) {
+        ret = dios_ssp_ns_process(srv->ptr_ns, srv->ptr_data_buf);
+        if(ret != 0) {
+            return ERROR_NS;
+        }
+    }
 
 #if 1
     // vad process

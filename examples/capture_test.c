@@ -83,7 +83,8 @@ objSSP_Param* init_signal_config(void) {
 }
 
 int main(void) {
-    const char* input_dev = "hw:5,0";
+    const char* input_dev = "default";
+    //const char* input_dev = "hw:5,0";
     const int in_channels = 8;
     const int out_channels = 1;
     const int in_sample_rate = 16000;

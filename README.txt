@@ -11,7 +11,10 @@ dtln模块是基于DTLN中的tflite预训练模型进行推理实现频率和时
 ./compile_exm.sh
 在bin目录下生成dtln
 
-bin/dtln data/airconditioner.wav data/airconditioner_dtln_ns_agc.wav data/airconditioner_vad.wav
+执行：
+bin/dtln data/airconditioner.wav
+
+会生成： data/airconditioner_dtln_ns_agc.wav data/airconditioner_vad.wav
 
 在examples/ns.c中如果设置了NS_KEY/DTLN_KEY/AGC_KEY，会按照会 dtln->ns->vad->agc 的流程执行
 
